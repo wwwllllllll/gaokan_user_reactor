@@ -1,6 +1,7 @@
 package com.gaokan.user.handler;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import com.gaokan.user.bean.UserInfo;
@@ -410,9 +411,17 @@ public class ReactorHandler {
 							String essayData = essayResp.getData().getEssayData();
 							String dynamicPage = "<body>\n<head><meta charset=\"utf-8\" /></head>\n" + "<center><h1>"
 									+ essayResp.getData().getEssayTitle() + "</h1></center>\n" + "<font size=6>"
-									+ essayData + "</br>\n" + userInfo.getCoupons().get(0).getDescription()
-									+ "</br>\n</font>" + "<img src=\"" + userInfo.getCoupons().get(0).getPicLink()
-									+ "\">" + "</body>";
+									+ essayData + "</br>\n";
+							if (userInfo.getCoupons() != null) {
+								Iterator<Coupon> it = userInfo.getCoupons().iterator();
+								while (it.hasNext()) {
+									Coupon coupon = it.next();
+									dynamicPage += coupon.getDescription();
+									dynamicPage += "</br>\n" + "<img src=\"" + coupon.getPicLink() + "\">";
+								}
+							}
+							dynamicPage += "</br>\n</font>" + "<a href=\"" + com.gaokan.user.parameter.UrlParameter.appDownloadUrl
+									+ "\">高看一眼,新型社交应用!写段子神器!点本链接下载...</a>" + "</body>";
 							serverResponse.putHeader("content-type", "text/html").end(dynamicPage);
 
 							redisClient.hget(Ip2CouponList.class.getName(), ip, s -> {
@@ -421,24 +430,35 @@ public class ReactorHandler {
 										Ip2CouponList map = new Ip2CouponList();
 										map.setIp(ip);
 										List<Coupon> list = new ArrayList<Coupon>();
-										list.add(userInfo.getCoupons().get(0));
+										boolean changed = list.addAll(userInfo.getCoupons());
 										map.setCoupons(list);
 										String jsonStrMap = Json.encode(map);
-										redisClient.hset(Ip2CouponList.class.getName(), ip, jsonStrMap, t-> {
-											if (!t.succeeded()) {
-												System.out.println("redis client set fail!");
-											}
-										});
-									} else {
-										Ip2CouponList map = Json.decodeValue(s.result(), Ip2CouponList.class);
-										if (!map.getCoupons().contains(userInfo.getCoupons().get(0))) {
-											map.getCoupons().add(userInfo.getCoupons().get(0));
-											String jsonStrMap = Json.encode(map);
+										if (changed) {
 											redisClient.hset(Ip2CouponList.class.getName(), ip, jsonStrMap, t-> {
 												if (!t.succeeded()) {
 													System.out.println("redis client set fail!");
 												}
 											});
+										}
+									} else {
+										Ip2CouponList map = Json.decodeValue(s.result(), Ip2CouponList.class);
+										if (userInfo.getCoupons() != null) {
+											Iterator<Coupon> iter = userInfo.getCoupons().iterator();
+											boolean changed = false;
+											while (iter.hasNext()) {
+												if (!map.getCoupons().contains(iter.next())) {
+													map.getCoupons().add(iter.next());
+													changed = true;
+												}
+											}
+											if (changed) {
+												String jsonStrMap = Json.encode(map);
+												redisClient.hset(Ip2CouponList.class.getName(), ip, jsonStrMap, t-> {
+													if (!t.succeeded()) {
+														System.out.println("redis client set fail!");
+													}
+												});
+											}
 										}
 									}
 								} else {
