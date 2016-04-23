@@ -34,8 +34,12 @@ public class ReactorVerticle extends AbstractVerticle {
 		router.post(UrlParameter.userFollowVendorUrl).handler(userHandler::handleUserFollowVendor);
 		router.post(UrlParameter.userAddCouponUrl).handler(userHandler::handleUserAddCoupon);
 		router.post(UrlParameter.userCouponListGetUrl).handler(userHandler::handleUserCouponListGet);
+		router.post(UrlParameter.vendorCouponListGetUrl).handler(userHandler::handleVendorCouponListGet);
+		router.post(UrlParameter.userPostEssayUrl).handler(userHandler::handleUserPostEssay);
+		router.post(UrlParameter.userEssayListGetUrl).handler(userHandler::handleUserEssayListGet);
 		router.route(UrlParameter.wechatDynamicPageGetUrl).handler(userHandler::handlewechatDynamicPageGet);
 		router.route("/vendors/*").handler(StaticHandler.create("vendors"));
+		router.route("/download/*").handler(StaticHandler.create("download"));
 		
 		HttpServerOptions options = new HttpServerOptions().setReuseAddress(true);
 		vertx.createHttpServer(options).requestHandler(router::accept).listen(

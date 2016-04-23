@@ -1,16 +1,24 @@
 package com.gaokan.user.handler;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map.Entry;
 
 import com.gaokan.user.bean.UserInfo;
 import com.gaokan.user.bean.UserSignInRequest;
 import com.gaokan.user.bean.UserSignUpRequest;
 import com.gaokan.user.bean.Vendor;
-import com.gaokan.essay.bean.EssayData;
-import com.gaokan.essay.bean.EssayRequest;
-import com.gaokan.essay.bean.EssayResponse;
+import com.gaokan.user.bean.VendorListGetRequest;
+import com.gaokan.user.bean.VendorListGetResponse;
+import com.gaokan.essay.bean.Essay;
+import com.gaokan.essay.bean.EssayGetRequest;
+import com.gaokan.essay.bean.EssayGetResponse;
+import com.gaokan.essay.bean.EssayListGetRequest;
+import com.gaokan.essay.bean.EssayListGetResponse;
+import com.gaokan.essay.bean.EssayPostRequest;
 import com.gaokan.essay.parameter.UrlParameter;
 import com.gaokan.user.bean.Coupon;
 import com.gaokan.user.bean.Ip2CouponList;
@@ -389,6 +397,155 @@ public class ReactorHandler {
 			}
 		});
 	}
+	
+	public void handleVendorCouponListGet(RoutingContext routingContext) {
+		HttpServerResponse serverResponse = routingContext.response();
+		serverResponse.putHeader("content-type", "application/json");
+		VendorListGetResponse respBean = new VendorListGetResponse();
+		respBean.setResultCode(1);
+		HttpServerRequest req = routingContext.request();
+		req.bodyHandler(r -> {
+			try {
+				VendorListGetRequest reqBean = Json.decodeValue(r.toString(), VendorListGetRequest.class);
+				// reqBean gives location parameter, no used for now
+				
+				redisClient.hgetall(Vendor.class.getName(), s -> {
+					if (s.succeeded()) {
+						if (s.result() != null) {
+							Iterator<Entry<String, Object>> it = s.result().iterator();
+							List<Vendor> vendors = new ArrayList<Vendor>();
+							while (it.hasNext()) {
+								String value = (String) it.next().getValue();
+								Vendor vendor = Json.decodeValue(value, Vendor.class);
+								vendors.add(vendor);
+							}
+							respBean.setResultCode(0);
+							respBean.setResult("获取商家列表成功!");
+							respBean.setVendors(vendors);
+							String resp = Json.encode(respBean);
+							serverResponse.putHeader("content-length", String.valueOf(resp.getBytes().length));
+							serverResponse.write(resp).end();
+						} else {
+							respBean.setResult("目前没有更多商家信息!");
+							String resp = Json.encode(respBean);
+							serverResponse.putHeader("content-length", String.valueOf(resp.getBytes().length));
+							serverResponse.write(resp).end();
+						}
+					} else {
+						System.out.println("redis client query fail!");
+						respBean.setResult("服务器忙,请稍候再试!");
+						String resp = Json.encode(respBean);
+						serverResponse.putHeader("content-length", String.valueOf(resp.getBytes().length));
+						serverResponse.write(resp).end();
+					}
+				});
+			} catch (DecodeException e) {
+				// TODO: handle exception
+				e.printStackTrace();
+				respBean.setResult("无法解析该请求内容!");
+				String resp = Json.encode(respBean);
+				serverResponse.putHeader("content-length", String.valueOf(resp.getBytes().length));
+				serverResponse.write(resp).end();
+			}
+		});
+	}
+
+	public void handleUserPostEssay(RoutingContext routingContext) {
+		HttpServerResponse serverResponse = routingContext.response();
+		serverResponse.putHeader("content-type", "application/json");
+		UserCommonResponse respBean = new UserCommonResponse();
+		respBean.setResultCode(1);
+		HttpServerRequest req = routingContext.request();
+		req.bodyHandler(r -> {
+			try {
+				EssayPostRequest reqBean = Json.decodeValue(r.toString(), EssayPostRequest.class);
+				Essay essay = new Essay();
+				essay.generateId();
+				essay.setUserId(reqBean.getUserId());
+				essay.setEssayId(reqBean.getEssayId());
+				essay.setEssayType(reqBean.getEssayType());
+				essay.setEssayTitle(reqBean.getData().getEssayTitle());
+				String essayData = reqBean.getData().getEssayData();
+				essay.setDigest(essayData.substring(0, 50 < essayData.length() ? 49 : essayData.length() - 1));
+				SimpleDateFormat df=new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+				essay.setDate(df.format(new Date()));
+				String jsonStrEssay = Json.encode(essay);
+				redisClient.hset(essay.getClass().getName(), String.valueOf(essay.getId()), jsonStrEssay, s -> {
+					if (s.succeeded()) {
+						respBean.setResultCode(0);
+						respBean.setResult("发布文章成功!");
+						String resp = Json.encode(respBean);
+						serverResponse.putHeader("content-length", String.valueOf(resp.getBytes().length));
+						serverResponse.write(resp).end();
+					} else {
+						System.out.println("redis hset fail, " + s.cause());
+						respBean.setResult("服务器忙,请稍候再试!");
+						String resp = Json.encode(respBean);
+						serverResponse.putHeader("content-length", String.valueOf(resp.getBytes().length));
+						serverResponse.write(resp).end();
+					}
+				});
+			} catch (DecodeException e) {
+				// TODO: handle exception
+				respBean.setResult("无法解析该关注请求内容!");
+				String resp = Json.encode(respBean);
+				serverResponse.putHeader("content-length", String.valueOf(resp.getBytes().length));
+				serverResponse.write(resp).end();
+			}
+		});
+	}
+
+	public void handleUserEssayListGet(RoutingContext routingContext) {
+		HttpServerResponse serverResponse = routingContext.response();
+		serverResponse.putHeader("content-type", "application/json");
+		EssayListGetResponse respBean = new EssayListGetResponse();
+		respBean.setResultCode(1);
+		HttpServerRequest req = routingContext.request();
+		req.bodyHandler(r -> {
+			try {
+				EssayListGetRequest reqBean = Json.decodeValue(r.toString(), EssayListGetRequest.class);
+				// reqBean gives userId parameter, no used for now
+				
+				redisClient.hgetall(Essay.class.getName(), s -> {
+					if (s.succeeded()) {
+						if (s.result() != null) {
+							Iterator<Entry<String, Object>> it = s.result().iterator();
+							List<Essay> essays = new ArrayList<Essay>();
+							while (it.hasNext()) {
+								String value = (String) it.next().getValue();
+								Essay essay = Json.decodeValue(value, Essay.class);
+								essays.add(essay);
+							}
+							respBean.setResultCode(0);
+							respBean.setResult("获取已发布文章列表成功!");
+							respBean.setEssays(essays);
+							String resp = Json.encode(respBean);
+							serverResponse.putHeader("content-length", String.valueOf(resp.getBytes().length));
+							serverResponse.write(resp).end();
+						} else {
+							respBean.setResult("目前没有更多已发布文章信息!");
+							String resp = Json.encode(respBean);
+							serverResponse.putHeader("content-length", String.valueOf(resp.getBytes().length));
+							serverResponse.write(resp).end();
+						}
+					} else {
+						System.out.println("redis client query fail!");
+						respBean.setResult("服务器忙,请稍候再试!");
+						String resp = Json.encode(respBean);
+						serverResponse.putHeader("content-length", String.valueOf(resp.getBytes().length));
+						serverResponse.write(resp).end();
+					}
+				});
+			} catch (DecodeException e) {
+				// TODO: handle exception
+				e.printStackTrace();
+				respBean.setResult("无法解析该请求内容!");
+				String resp = Json.encode(respBean);
+				serverResponse.putHeader("content-length", String.valueOf(resp.getBytes().length));
+				serverResponse.write(resp).end();
+			}
+		});
+	}
 
 	public void handlewechatDynamicPageGet(RoutingContext routingContext) {
 		HttpServerRequest req = routingContext.request();
@@ -407,7 +564,7 @@ public class ReactorHandler {
 						System.out.println("Received response with status code " + response.statusCode());
 						response.bodyHandler(buffer -> {
 							String jsonResp = buffer.toString().replaceAll("\\\\n", "<br/>\\\\n");
-							EssayResponse essayResp = Json.decodeValue(jsonResp, EssayResponse.class);
+							EssayGetResponse essayResp = Json.decodeValue(jsonResp, EssayGetResponse.class);
 							String essayData = essayResp.getData().getEssayData();
 							String dynamicPage = "<body>\n<head><meta charset=\"utf-8\" /></head>\n" + "<center><h1>"
 									+ essayResp.getData().getEssayTitle() + "</h1></center>\n" + "<font size=6>"
@@ -420,8 +577,8 @@ public class ReactorHandler {
 									dynamicPage += "</br>\n" + "<img src=\"" + coupon.getPicLink() + "\">";
 								}
 							}
-							dynamicPage += "</br>\n</font>" + "<a href=\"" + com.gaokan.user.parameter.UrlParameter.appDownloadUrl
-									+ "\">高看一眼,新型社交应用!写段子神器!点本链接下载...</a>" + "</body>";
+							dynamicPage += "</br>\n" + "高看一眼,新型社交应用!写段子神器!长按二维码下载..." + "</font>"
+							+ "</br>\n" + "<img src=\"" + com.gaokan.user.parameter.UrlParameter.appDownloadUrl + "\">" + "</body>";
 							serverResponse.putHeader("content-type", "text/html").end(dynamicPage);
 
 							redisClient.hget(Ip2CouponList.class.getName(), ip, s -> {
@@ -469,7 +626,7 @@ public class ReactorHandler {
 					});
 					// Now do stuff with the request
 					request.putHeader("content-type", "application/json");
-					EssayRequest essayReq = new EssayRequest();
+					EssayGetRequest essayReq = new EssayGetRequest();
 					essayReq.setUserId(cellNum);
 					essayReq.setEssayType(Integer.valueOf(essayType));
 					essayReq.setEssayId(Integer.valueOf(essayId));

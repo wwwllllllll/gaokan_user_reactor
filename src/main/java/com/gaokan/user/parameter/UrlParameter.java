@@ -5,7 +5,10 @@ public class UrlParameter {
 	public static final String userSignInUrl = "/usersignin";
 	public static final String userFollowVendorUrl = "/userfollowvendor";
 	public static final String userAddCouponUrl = "/useraddcoupon";
-	public static final String userCouponListGetUrl = "/usercouponListget";
+	public static final String userCouponListGetUrl = "/usercouponlistget";
+	public static final String vendorCouponListGetUrl = "/vendorcouponlistget";
+	public static final String userPostEssayUrl = "/userpostessay";
+	public static final String userEssayListGetUrl = "/useressaylistget";
 	public static final String wechatDynamicPageGetUrl = "/wechatdynamicpageget";
-	public static final String appDownloadUrl = "http://www.gaokanyiyan.com/app_download";
+	public static final String appDownloadUrl = "/download/gaokan_2dcode_android.png";
 }
