@@ -14,6 +14,9 @@ import io.vertx.redis.RedisOptions;
 public class ReactorVerticle extends AbstractVerticle {
 	private RedisClient redisClient;
 	private ReactorHandler userHandler;
+	static public long vendorNumber = 0;
+	static public long couponNumber = 0;
+	static public long essayNumber = 0;
 	
 	@Override
 	public void start(Future<Void> fut) {
@@ -25,7 +28,12 @@ public class ReactorVerticle extends AbstractVerticle {
 		userHandler = new ReactorHandler(redisClient, serverIp);
 		
 		//demo data create
-		DemoDataCreate.addDemoVendorCoupon(redisClient);
+		//DemoDataCreate.addDemoVendorCoupon(redisClient);
+		
+		//Initially fetch database entry number (vendor, coupon, essay)
+		InitFetchDataEntryNumber.fetchVendorEntryNumber(redisClient);
+		InitFetchDataEntryNumber.fetchCouponEntryNumber(redisClient);
+		InitFetchDataEntryNumber.fetchEssayEntryNumber(redisClient);
 		
 		// Create a router object.
 		Router router = Router.router(vertx);
@@ -36,10 +44,15 @@ public class ReactorVerticle extends AbstractVerticle {
 		router.post(UrlParameter.userCouponListGetUrl).handler(userHandler::handleUserCouponListGet);
 		router.post(UrlParameter.vendorCouponListGetUrl).handler(userHandler::handleVendorCouponListGet);
 		router.post(UrlParameter.userPostEssayUrl).handler(userHandler::handleUserPostEssay);
+		router.post(UrlParameter.userPostEssayPicUrl).handler(userHandler::handleUserPostEssayPic);
 		router.post(UrlParameter.userEssayListGetUrl).handler(userHandler::handleUserEssayListGet);
+		router.post(UrlParameter.vendorAddCouponUrl).handler(userHandler::handleVendorAddCoupon);
 		router.route(UrlParameter.wechatDynamicPageGetUrl).handler(userHandler::handlewechatDynamicPageGet);
 		router.route("/vendors/*").handler(StaticHandler.create("vendors"));
 		router.route("/download/*").handler(StaticHandler.create("download"));
+		router.route("/test/*").handler(StaticHandler.create("test"));
+		router.post("/formlogo").handler(userHandler::handleFormLogoUpload);
+		router.post("/formessaypic").handler(userHandler::handleFormEssayPicUpload);
 		
 		HttpServerOptions options = new HttpServerOptions().setReuseAddress(true);
 		vertx.createHttpServer(options).requestHandler(router::accept).listen(

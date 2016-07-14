@@ -8,8 +8,8 @@ public class Coupon {
 	private String name;
 	private String description;
 	private String picLink;
-	public void generateId() {
-		id = COUNTER.getAndIncrement();
+	public void generateId(long offset) {
+		id = COUNTER.getAndIncrement() + offset;
 	}
 	@Override
 	public boolean equals(Object obj) {

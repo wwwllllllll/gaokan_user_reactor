@@ -11,8 +11,15 @@ public class Essay {
 	private String essayTitle;
 	private String digest;
 	private String date;
-	public void generateId() {
-		id = COUNTER.getAndIncrement();
+	private String picName;
+	public String getPicName() {
+		return picName;
+	}
+	public void setPicName(String picName) {
+		this.picName = picName;
+	}
+	public void generateId(long offset) {
+		id = COUNTER.getAndIncrement() + offset;
 	}
 	public long getId() {
 		return id;

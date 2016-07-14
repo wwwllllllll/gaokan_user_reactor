@@ -9,8 +9,11 @@ com\gaokan\essay\parameter\UrlParameter.class
 com\gaokan\essay\bean\EssayPostRequest.class
 com\gaokan\essay\bean\EssayGetRequest.class
 com\gaokan\user\bean\Ip2CouponList.class
+com\gaokan\essay\bean\EssayListGetResponse.class
 com\gaokan\user\bean\UserInfo.class
+com\gaokan\essay\bean\EssayListGetRequest.class
 com\gaokan\user\bean\UserFollowVendorRequest.class
+com\gaokan\user\bean\VendorAddCouponRequest.class
 com\gaokan\essay\bean\Essay.class
 com\gaokan\essay\bean\EssayGetResponse.class
 com\gaokan\user\bean\UserCommonResponse.class
@@ -19,5 +22,7 @@ com\gaokan\user\bean\UserCouponListGetResponse.class
 com\gaokan\user\ReactorVerticle.class
 com\gaokan\user\bean\Vendor.class
 com\gaokan\user\bean\UserCouponListGetRequest.class
+com\gaokan\user\InitFetchDataEntryNumber.class
 com\gaokan\user\DemoDataCreate.class
+com\gaokan\essay\bean\EssayPicPostRequest.class
 com\gaokan\user\bean\Coupon.class

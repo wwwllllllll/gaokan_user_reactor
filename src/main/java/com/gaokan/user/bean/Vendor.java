@@ -9,8 +9,8 @@ public class Vendor {
 	private String vendorName;
 	private String logoLink;
 	private List<Coupon> coupons;
-	public void generateId() {
-		id = COUNTER.getAndIncrement();
+	public void generateId(long offset) {
+		id = COUNTER.getAndIncrement() + offset;
 	}
 	public long getId() {
 		return id;

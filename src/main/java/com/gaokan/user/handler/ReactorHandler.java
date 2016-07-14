@@ -1,7 +1,9 @@
 package com.gaokan.user.handler;
 
+import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
@@ -11,6 +13,7 @@ import com.gaokan.user.bean.UserInfo;
 import com.gaokan.user.bean.UserSignInRequest;
 import com.gaokan.user.bean.UserSignUpRequest;
 import com.gaokan.user.bean.Vendor;
+import com.gaokan.user.bean.VendorAddCouponRequest;
 import com.gaokan.user.bean.VendorListGetRequest;
 import com.gaokan.user.bean.VendorListGetResponse;
 import com.gaokan.essay.bean.Essay;
@@ -18,8 +21,10 @@ import com.gaokan.essay.bean.EssayGetRequest;
 import com.gaokan.essay.bean.EssayGetResponse;
 import com.gaokan.essay.bean.EssayListGetRequest;
 import com.gaokan.essay.bean.EssayListGetResponse;
+import com.gaokan.essay.bean.EssayPicPostRequest;
 import com.gaokan.essay.bean.EssayPostRequest;
 import com.gaokan.essay.parameter.UrlParameter;
+import com.gaokan.user.ReactorVerticle;
 import com.gaokan.user.bean.Coupon;
 import com.gaokan.user.bean.Ip2CouponList;
 import com.gaokan.user.bean.UserAddCouponRequest;
@@ -40,6 +45,7 @@ import io.vertx.redis.RedisClient;
 public class ReactorHandler {
 	private RedisClient redisClient;
 	private String serverIp;
+	private String vendorName;
 
 	public ReactorHandler(RedisClient redisClient, String serverIp) {
 		super();
@@ -305,7 +311,7 @@ public class ReactorHandler {
 															String.valueOf(resp.getBytes().length));
 													serverResponse.write(resp).end();
 												} else {
-													System.out.println("Connection or Operation Failed " + t.cause());
+													System.out.println("Connection or Operation Failed " + u.cause());
 													respBean.setResult("服务器忙,请稍候再试!");
 													String resp = Json.encode(respBean);
 													serverResponse.putHeader("content-length",
@@ -449,6 +455,69 @@ public class ReactorHandler {
 			}
 		});
 	}
+	
+	public void handleVendorAddCoupon(RoutingContext routingContext) {
+		HttpServerResponse serverResponse = routingContext.response();
+		serverResponse.putHeader("content-type", "application/json");
+		UserCommonResponse respBean = new UserCommonResponse();
+		respBean.setResultCode(1);
+		HttpServerRequest req = routingContext.request();
+		req.bodyHandler(r -> {
+			try {
+				VendorAddCouponRequest reqBean = Json.decodeValue(r.toString(), VendorAddCouponRequest.class);
+				Coupon coupon = new Coupon();
+				coupon.generateId(ReactorVerticle.couponNumber);
+				coupon.setName(reqBean.getVendorName() + ".coupon1");
+				coupon.setDescription(reqBean.getCouponName());
+				coupon.setPicLink("/vendors/" + reqBean.getVendorName() + "/coupons/coupon1.jpg");
+				String jsonStrCoupon = Json.encode(coupon);
+				redisClient.hset(coupon.getClass().getName(), String.valueOf(coupon.getId()), jsonStrCoupon, s -> {
+					if (s.succeeded()) {
+						Vendor vendor = new Vendor();
+						vendor.generateId(ReactorVerticle.vendorNumber);
+						vendor.setVendorName(reqBean.getVendorName());
+						vendor.setLogoLink("/vendors/" + reqBean.getVendorName() + "/logo/logo.jpg");
+						List<Coupon> listCoupon = new ArrayList<Coupon>();
+						listCoupon.add(coupon);
+						vendor.setCoupons(listCoupon);
+						String jsonStrVendor = Json.encode(vendor);
+						redisClient.hset(vendor.getClass().getName(), String.valueOf(vendor.getId()), jsonStrVendor, t -> {
+							if (t.succeeded()) {
+								ReactorHandler.this.vendorName = reqBean.getVendorName();
+								respBean.setResultCode(0);
+								respBean.setResult("添加商家和优惠券成功!");
+								String resp = Json.encode(respBean);
+								serverResponse.putHeader("content-length",
+										String.valueOf(resp.getBytes().length));
+								serverResponse.write(resp).end();
+							} else {
+								System.out.println("Connection or Operation Failed " + t.cause());
+								respBean.setResult("服务器忙,请稍候再试!");
+								String resp = Json.encode(respBean);
+								serverResponse.putHeader("content-length",
+										String.valueOf(resp.getBytes().length));
+								serverResponse.write(resp).end();
+							}
+						});
+					} else {
+						System.out.println("Connection or Operation Failed " + s.cause());
+						respBean.setResult("服务器忙,请稍候再试!");
+						String resp = Json.encode(respBean);
+						serverResponse.putHeader("content-length",
+								String.valueOf(resp.getBytes().length));
+						serverResponse.write(resp).end();
+					}
+				});
+			} catch (DecodeException e) {
+				// TODO: handle exception
+				e.printStackTrace();
+				respBean.setResult("无法解析该收藏请求内容!");
+				String resp = Json.encode(respBean);
+				serverResponse.putHeader("content-length", String.valueOf(resp.getBytes().length));
+				serverResponse.write(resp).end();
+			}
+		});
+	}
 
 	public void handleUserPostEssay(RoutingContext routingContext) {
 		HttpServerResponse serverResponse = routingContext.response();
@@ -460,7 +529,7 @@ public class ReactorHandler {
 			try {
 				EssayPostRequest reqBean = Json.decodeValue(r.toString(), EssayPostRequest.class);
 				Essay essay = new Essay();
-				essay.generateId();
+				essay.generateId(ReactorVerticle.essayNumber);
 				essay.setUserId(reqBean.getUserId());
 				essay.setEssayId(reqBean.getEssayId());
 				essay.setEssayType(reqBean.getEssayType());
@@ -469,6 +538,53 @@ public class ReactorHandler {
 				essay.setDigest(essayData.substring(0, 50 < essayData.length() ? 49 : essayData.length() - 1));
 				SimpleDateFormat df=new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 				essay.setDate(df.format(new Date()));
+				essay.setPicName("/download/gaokan_2dcode_android.png");
+				String jsonStrEssay = Json.encode(essay);
+				redisClient.hset(essay.getClass().getName(), String.valueOf(essay.getId()), jsonStrEssay, s -> {
+					if (s.succeeded()) {
+						respBean.setResultCode(0);
+						respBean.setResult("发布文章成功!");
+						String resp = Json.encode(respBean);
+						serverResponse.putHeader("content-length", String.valueOf(resp.getBytes().length));
+						serverResponse.write(resp).end();
+					} else {
+						System.out.println("redis hset fail, " + s.cause());
+						respBean.setResult("服务器忙,请稍候再试!");
+						String resp = Json.encode(respBean);
+						serverResponse.putHeader("content-length", String.valueOf(resp.getBytes().length));
+						serverResponse.write(resp).end();
+					}
+				});
+			} catch (DecodeException e) {
+				// TODO: handle exception
+				respBean.setResult("无法解析该关注请求内容!");
+				String resp = Json.encode(respBean);
+				serverResponse.putHeader("content-length", String.valueOf(resp.getBytes().length));
+				serverResponse.write(resp).end();
+			}
+		});
+	}
+	
+	public void handleUserPostEssayPic(RoutingContext routingContext) {
+		HttpServerResponse serverResponse = routingContext.response();
+		serverResponse.putHeader("content-type", "application/json");
+		UserCommonResponse respBean = new UserCommonResponse();
+		respBean.setResultCode(1);
+		HttpServerRequest req = routingContext.request();
+		req.bodyHandler(r -> {
+			try {
+				EssayPicPostRequest reqBean = Json.decodeValue(r.toString(), EssayPicPostRequest.class);
+				Essay essay = new Essay();
+				essay.generateId(ReactorVerticle.essayNumber);
+				essay.setUserId(reqBean.getUserId());
+				essay.setEssayId(reqBean.getEssayId());
+				essay.setEssayType(reqBean.getEssayType());
+				essay.setEssayTitle(reqBean.getData().getEssayTitle());
+				String essayData = reqBean.getData().getEssayData();
+				essay.setDigest(essayData.substring(0, 50 < essayData.length() ? 49 : essayData.length() - 1));
+				SimpleDateFormat df=new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+				essay.setDate(df.format(new Date()));
+				essay.setPicName("/essaypic/" + reqBean.getPicName());
 				String jsonStrEssay = Json.encode(essay);
 				redisClient.hset(essay.getClass().getName(), String.valueOf(essay.getId()), jsonStrEssay, s -> {
 					if (s.succeeded()) {
@@ -516,6 +632,13 @@ public class ReactorHandler {
 								Essay essay = Json.decodeValue(value, Essay.class);
 								essays.add(essay);
 							}
+							essays.sort(new Comparator<Essay>() {
+								@Override
+								public int compare(Essay o1, Essay o2) {
+									// TODO Auto-generated method stub
+									return o1.getEssayId() - o2.getEssayId();
+								}
+							});
 							respBean.setResultCode(0);
 							respBean.setResult("获取已发布文章列表成功!");
 							respBean.setEssays(essays);
@@ -647,5 +770,45 @@ public class ReactorHandler {
 				serverResponse.putHeader("content-type", "text/html").end(dynamicPage);
 			}
 		});
+	}
+	
+	public void handleFormLogoUpload(RoutingContext routingContext) {
+		HttpServerRequest req = routingContext.request();
+		req.setExpectMultipart(true);
+        req.uploadHandler(upload -> {
+        	upload.exceptionHandler(cause -> {
+        		req.response().setChunked(true).end("Upload failed");
+        	});
+
+	      	upload.endHandler(v -> {
+		      	req.response().setChunked(true).end("Successfully uploaded to " + upload.filename());
+		      	});
+	      	//File file = new File("src/main/resources/vendors/" + vendorName + "/logo");
+	      	File file = new File("vendors/" + vendorName + "/logo");
+	      	file.mkdirs();
+	      	//upload.streamToFileSystem("src" + File.separator + "main" + File.separator + "resources" + File.separator + "vendors" + File.separator + vendorName + File.separator + "logo" + File.separator + upload.filename());
+	      	upload.streamToFileSystem("vendors" + File.separator + vendorName + File.separator + "logo" + File.separator + upload.filename());
+        });
+	}
+	
+	public void handleFormEssayPicUpload(RoutingContext routingContext) {
+		HttpServerRequest req = routingContext.request();
+		req.setExpectMultipart(true);
+        req.uploadHandler(upload -> {
+        	upload.exceptionHandler(cause -> {
+        		req.response().setChunked(true).end("Upload failed");
+        	});
+
+	      	upload.endHandler(v -> {
+		      	req.response().setChunked(true).end("Successfully uploaded to " + upload.filename());
+		      	});
+	      	//File file = new File("src/main/resources/vendors/" + vendorName + "/logo");
+	      	File file = new File("essaypic/");
+	      	if (!file.exists()) {
+	      		file.mkdirs();
+	      	}
+	      	//upload.streamToFileSystem("src" + File.separator + "main" + File.separator + "resources" + File.separator + "vendors" + File.separator + vendorName + File.separator + "logo" + File.separator + upload.filename());
+	      	upload.streamToFileSystem("essaypic" + File.separator + upload.filename());
+        });
 	}
 }
