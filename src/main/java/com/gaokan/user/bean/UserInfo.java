@@ -7,7 +7,7 @@ public class UserInfo {
 	private String password;
 	private String nickName;
 	private List<String> ipAddr;
-	private List<Long> followVendors;
+	private List<String> followVendors;
 	private List<Coupon> coupons;
 	public String getCellNum() {
 		return cellNum;
@@ -33,10 +33,10 @@ public class UserInfo {
 	public void setIpAddr(List<String> ipAddr) {
 		this.ipAddr = ipAddr;
 	}
-	public List<Long> getFollowVendors() {
+	public List<String> getFollowVendors() {
 		return followVendors;
 	}
-	public void setFollowVendors(List<Long> followVendors) {
+	public void setFollowVendors(List<String> followVendors) {
 		this.followVendors = followVendors;
 	}
 	public List<Coupon> getCoupons() {

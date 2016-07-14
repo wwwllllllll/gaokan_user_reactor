@@ -14,8 +14,6 @@ import io.vertx.redis.RedisOptions;
 public class ReactorVerticle extends AbstractVerticle {
 	private RedisClient redisClient;
 	private ReactorHandler userHandler;
-	static public long vendorNumber = 0;
-	static public long couponNumber = 0;
 	static public long essayNumber = 0;
 	
 	@Override
@@ -30,9 +28,7 @@ public class ReactorVerticle extends AbstractVerticle {
 		//demo data create
 		//DemoDataCreate.addDemoVendorCoupon(redisClient);
 		
-		//Initially fetch database entry number (vendor, coupon, essay)
-		InitFetchDataEntryNumber.fetchVendorEntryNumber(redisClient);
-		InitFetchDataEntryNumber.fetchCouponEntryNumber(redisClient);
+		//Initially fetch database entry number (essay)
 		InitFetchDataEntryNumber.fetchEssayEntryNumber(redisClient);
 		
 		// Create a router object.

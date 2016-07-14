@@ -2,17 +2,18 @@ package com.gaokan.user.bean;
 
 public class UserAddCouponRequest {
 	private String userCellNum;
-	private long couponId;
+	private String couponId;
 	public String getUserCellNum() {
 		return userCellNum;
 	}
 	public void setUserCellNum(String userCellNum) {
 		this.userCellNum = userCellNum;
 	}
-	public long getCouponId() {
+	public String getCouponId() {
 		return couponId;
 	}
-	public void setCouponId(long couponId) {
+	public void setCouponId(String couponId) {
 		this.couponId = couponId;
 	}
+	
 }

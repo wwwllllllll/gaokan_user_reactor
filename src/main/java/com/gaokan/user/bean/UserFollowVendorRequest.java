@@ -2,17 +2,18 @@ package com.gaokan.user.bean;
 
 public class UserFollowVendorRequest {
 	private String userCellNum;
-	private long vendorId;
+	private String vendorId;
 	public String getUserCellNum() {
 		return userCellNum;
 	}
 	public void setUserCellNum(String userCellNum) {
 		this.userCellNum = userCellNum;
 	}
-	public long getVendorId() {
+	public String getVendorId() {
 		return vendorId;
 	}
-	public void setVendorId(long vendorId) {
+	public void setVendorId(String vendorId) {
 		this.vendorId = vendorId;
 	}
+	
 }

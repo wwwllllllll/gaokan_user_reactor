@@ -1,26 +1,15 @@
 package com.gaokan.user.bean;
 
-import java.util.concurrent.atomic.AtomicLong;
-
 public class Coupon {
-	private static final AtomicLong COUNTER = new AtomicLong();
-	private long id;
+	private String couponId;
 	private String name;
 	private String description;
 	private String picLink;
-	public void generateId(long offset) {
-		id = COUNTER.getAndIncrement() + offset;
+	public String getCouponId() {
+		return couponId;
 	}
-	@Override
-	public boolean equals(Object obj) {
-		// TODO Auto-generated method stub
-		return id == ((Coupon)obj).getId();
-	}
-	public long getId() {
-		return id;
-	}
-	public void setId(long id) {
-		this.id = id;
+	public void setCouponId(String couponId) {
+		this.couponId = couponId;
 	}
 	public String getName() {
 		return name;

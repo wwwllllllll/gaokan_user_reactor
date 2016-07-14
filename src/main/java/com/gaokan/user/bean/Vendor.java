@@ -1,22 +1,17 @@
 package com.gaokan.user.bean;
 
 import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
 
 public class Vendor {
-	private static final AtomicLong COUNTER = new AtomicLong();
-	private long id;
+	private String vendorId;
 	private String vendorName;
 	private String logoLink;
 	private List<Coupon> coupons;
-	public void generateId(long offset) {
-		id = COUNTER.getAndIncrement() + offset;
+	public String getVendorId() {
+		return vendorId;
 	}
-	public long getId() {
-		return id;
-	}
-	public void setId(long id) {
-		this.id = id;
+	public void setVendorId(String vendorId) {
+		this.vendorId = vendorId;
 	}
 	public String getVendorName() {
 		return vendorName;

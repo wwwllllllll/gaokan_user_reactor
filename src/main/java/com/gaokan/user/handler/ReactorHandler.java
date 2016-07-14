@@ -195,11 +195,11 @@ public class ReactorHandler {
 					if (s.succeeded()) {
 						if (s.result() != null) {
 							UserInfo userInfo = Json.decodeValue(s.result(), UserInfo.class);
-							redisClient.hget(Vendor.class.getName(), String.valueOf(reqBean.getVendorId()), t -> {
+							redisClient.hget(Vendor.class.getName(), reqBean.getVendorId(), t -> {
 								if (t.succeeded()) {
 									if (t.result() != null) {
-										List<Long> list = userInfo.getFollowVendors();
-										if (list != null && list.contains(Long.valueOf(reqBean.getVendorId()))) {
+										List<String> list = userInfo.getFollowVendors();
+										if (list != null && list.contains(reqBean.getVendorId())) {
 											respBean.setResult("已经关注过该商家!");
 											String resp = Json.encode(respBean);
 											serverResponse.putHeader("content-length",
@@ -207,9 +207,9 @@ public class ReactorHandler {
 											serverResponse.write(resp).end();
 										} else {
 											if (list == null) {
-												list = new ArrayList<Long>();
+												list = new ArrayList<String>();
 											}
-											list.add(Long.valueOf(reqBean.getVendorId()));
+											list.add(reqBean.getVendorId());
 											userInfo.setFollowVendors(list);
 											String jsonStrUserInfo = Json.encode(userInfo);
 											redisClient.hset(userInfo.getClass().getName(), userInfo.getCellNum(),
@@ -283,7 +283,7 @@ public class ReactorHandler {
 					if (s.succeeded()) {
 						if (s.result() != null) {
 							UserInfo userInfo = Json.decodeValue(s.result(), UserInfo.class);
-							redisClient.hget(Coupon.class.getName(), String.valueOf(reqBean.getCouponId()), t -> {
+							redisClient.hget(Coupon.class.getName(), reqBean.getCouponId(), t -> {
 								if (t.succeeded()) {
 									if (t.result() != null) {
 										Coupon coupon = Json.decodeValue(t.result(), Coupon.class);
@@ -466,22 +466,22 @@ public class ReactorHandler {
 			try {
 				VendorAddCouponRequest reqBean = Json.decodeValue(r.toString(), VendorAddCouponRequest.class);
 				Coupon coupon = new Coupon();
-				coupon.generateId(ReactorVerticle.couponNumber);
+				coupon.setCouponId(reqBean.getVendorId() + "01");
 				coupon.setName(reqBean.getVendorName() + ".coupon1");
 				coupon.setDescription(reqBean.getCouponName());
 				coupon.setPicLink("/vendors/" + reqBean.getVendorName() + "/coupons/coupon1.jpg");
 				String jsonStrCoupon = Json.encode(coupon);
-				redisClient.hset(coupon.getClass().getName(), String.valueOf(coupon.getId()), jsonStrCoupon, s -> {
+				redisClient.hset(coupon.getClass().getName(), coupon.getCouponId(), jsonStrCoupon, s -> {
 					if (s.succeeded()) {
 						Vendor vendor = new Vendor();
-						vendor.generateId(ReactorVerticle.vendorNumber);
+						vendor.setVendorId(reqBean.getVendorId());
 						vendor.setVendorName(reqBean.getVendorName());
 						vendor.setLogoLink("/vendors/" + reqBean.getVendorName() + "/logo/logo.jpg");
 						List<Coupon> listCoupon = new ArrayList<Coupon>();
 						listCoupon.add(coupon);
 						vendor.setCoupons(listCoupon);
 						String jsonStrVendor = Json.encode(vendor);
-						redisClient.hset(vendor.getClass().getName(), String.valueOf(vendor.getId()), jsonStrVendor, t -> {
+						redisClient.hset(vendor.getClass().getName(), vendor.getVendorId(), jsonStrVendor, t -> {
 							if (t.succeeded()) {
 								ReactorHandler.this.vendorName = reqBean.getVendorName();
 								respBean.setResultCode(0);
@@ -636,7 +636,7 @@ public class ReactorHandler {
 								@Override
 								public int compare(Essay o1, Essay o2) {
 									// TODO Auto-generated method stub
-									return o1.getEssayId() - o2.getEssayId();
+									return (int)(o2.getId() - o1.getId());
 								}
 							});
 							respBean.setResultCode(0);
@@ -704,6 +704,7 @@ public class ReactorHandler {
 							+ "</br>\n" + "<img src=\"" + com.gaokan.user.parameter.UrlParameter.appDownloadUrl + "\">" + "</body>";
 							serverResponse.putHeader("content-type", "text/html").end(dynamicPage);
 
+							// Maintain Ip2CouponList, add coupon if new one. Ignore if already added.
 							redisClient.hget(Ip2CouponList.class.getName(), ip, s -> {
 								if (s.succeeded()) {
 									if (s.result() == null) {
